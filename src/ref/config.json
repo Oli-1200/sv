@@ -1,0 +1,39 @@
+{
+    "paths": {
+        "base_images_dir": "./ref/bulletins",
+        "source_images_dir": "./bulletins-a-trier",
+        "export_dir": "./export",
+        "csv_output": "./export/resultats_analyse.csv"
+    },
+    "detection": {
+        "difference_threshold_percent": 3.0,
+        "corner_detection_threshold": 50,
+        "alignment_tolerance": 0.5
+    },
+    "identification_zone": {
+        "enabled": true,
+        "x": 1480,
+        "y": 608,
+        "width": 130,
+        "height": 120,
+        "description": "Zone du numéro de liste en haut à droite",
+        "black_pixel_threshold_percent": 5.0
+    },
+    "exclusion_zones": [
+        {
+            "name": "no-ref-bul",
+            "x": 30,
+            "y": 1900,
+            "width": 650,
+            "height": 250,
+            "description": "No de référence SV du bulletin"
+        }
+    ],
+    "processing": {
+        "rotation_range": 180,
+        "rotation_step": 0.5,
+        "corner_template_size": 120,
+        "binarization_threshold": 140,
+        "edge_detection_margin": 80
+    }
+}
