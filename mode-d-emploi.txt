@@ -1,0 +1,388 @@
+================================================================================
+MODE D'EMPLOI - SYSTÈME DE VÉRIFICATION DE BULLETINS DE VOTE
+================================================================================
+
+TABLE DES MATIÈRES
+------------------
+1. Installation de l'environnement
+2. Structure du projet
+3. Configuration
+4. Utilisation normale
+5. Scripts de débogage
+6. Paramétrage du logging
+7. Résolution de problèmes courants
+
+
+================================================================================
+1. INSTALLATION DE L'ENVIRONNEMENT
+================================================================================
+
+Prérequis :
+-----------
+- Anaconda ou Miniconda installé
+- Python 3.9 ou supérieur
+
+Étapes d'installation :
+-----------------------
+
+1.1) Créer l'environnement conda
+   conda create -n bulletins python=3.9
+   conda activate bulletins
+
+1.2) Installer les dépendances
+   pip install opencv-python
+   pip install numpy
+
+1.3) Vérifier l'installation
+   python -c "import cv2; print(cv2.__version__)"
+   python -c "import numpy; print(numpy.__version__)"
+
+Note : Pour désactiver l'environnement plus tard :
+   conda deactivate
+
+   conda env list
+
+
+================================================================================
+2. STRUCTURE DU PROJET
+================================================================================
+
+src-cg/
+├── main.py                          # Point d'entrée principal
+├── config/
+│   └── config.json                  # Configuration globale
+├── src/
+│   ├── align_and_compare.py         # Alignement et comparaison
+│   ├── detect_corners.py            # Détection des coins
+│   ├── identify_list_number.py      # Lecture du numéro de liste
+│   └── define_zones.py              # Outil de définition des zones
+├── ref/
+│   ├── bulletins/                   # Bulletins de référence (vierges)
+│   ├── corners/                     # Templates des coins (4 images)
+│   └── digits/                      # Templates des chiffres 0-9
+├── bulletins-a-trier/               # Dossier d'entrée (bulletins à traiter)
+└── export/
+    └── YYYYMMDD_HHMMSS/             # Dossiers de sortie horodatés
+        ├── align/                    # Images alignées
+        ├── modifie/                  # Bulletins modifiés
+        ├── pas-modifie/              # Bulletins non modifiés
+        └── report.csv                # Rapport détaillé
+
+
+================================================================================
+3. CONFIGURATION
+================================================================================
+
+Fichier : config/config.json
+
+Paramètres principaux :
+-----------------------
+
+3.1) Niveau de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+   "log_level": "INFO"
+
+3.2) Chemins des dossiers
+   "paths": {
+     "ref_bulletins_dir": "./ref/bulletins",
+     "corners_dir": "./ref/corners",
+     "input_dir": "./bulletins-a-trier",
+     "export_dir": "./export"
+   }
+
+3.3) Détection des coins
+   "corners": {
+     "template_size": 40,
+     "match_threshold": 0.4          # Seuil de corrélation (0-1)
+   }
+
+3.4) Zones de comparaison
+   "corner_boxes": {                 # Zones où chercher les coins
+     "top_left": {"x": 50, "y": 50, "w": 150, "h": 150},
+     ...
+   }
+
+3.5) Paramètres de détection de modifications
+   "diff": {
+     "threshold_soft": 40,            # Seuil de différence douce
+     "max_soft_pixels": 500000,       # Max pixels différents (passe douce)
+     "threshold_hard": 80,            # Seuil de différence forte
+     "max_hard_pixels": 12000,        # Max pixels différents (passe forte)
+     "min_hard_blob_area": 200,       # Aire minimale des blobs
+     "hard_exclude_top": 220,         # Pixels exclus en haut
+     "hard_exclude_bottom": 220       # Pixels exclus en bas
+   }
+
+3.6) Zones d'exclusion (codes imprimés, numéros, etc.)
+   "zones": {
+     "exclusion": [
+       {"x": 40, "y": 1995, "w": 700, "h": 70, "comment": "Numéro bulletin"}
+     ]
+   }
+
+3.7) Correspondance numéro de liste → fichier de référence
+   "lists": {
+     "01": "Bulletin_LED_001.png",
+     "02": "Bulletin_VERTS_002.png",
+     ...
+     "SNL": "Bulletin_SNL_000.png"
+   }
+   
+3.8) Conversion d'images de bulletins en bulletins de référence
+# Convertir un répertoire de références
+python convert_bw.py --mode ref --source ./ref_couleur --output ./ref_nb
+
+# Avec mode verbose pour voir les détails
+python convert_bw.py --mode ref -s ./ref_couleur -o ./ref_nb -v
+
+# Avec paramètres personnalisés
+python convert_bw.py --mode ref -s ./source -o ./output --threshold 130
+
+
+================================================================================
+4. UTILISATION NORMALE
+================================================================================
+
+4.1) Préparation
+   - Placer les bulletins de référence (vierges) dans ref/bulletins/
+   - Placer les bulletins à vérifier dans bulletins-a-trier/
+   - Vérifier que config.json est correctement configuré
+
+4.2) Exécution
+   conda activate bulletins
+   cd src-cg
+   python main.py
+
+4.3) Résultats
+   Les résultats sont dans export/YYYYMMDD_HHMMSS/ :
+   - align/           : Images alignées avec les références
+   - modifie/         : Bulletins avec modifications détectées
+   - pas-modifie/     : Bulletins sans modification
+   - report.csv       : Rapport détaillé (CSV avec séparateur ";")
+
+4.4) Format du rapport (report.csv)
+   Colonnes :
+   - fichier          : Nom du fichier traité
+   - numero_liste     : Numéro de liste détecté (01, 02, ..., SNL)
+   - template         : Fichier de référence utilisé
+   - pixels_diff_soft : Nombre de pixels différents (passe douce)
+   - pixels_diff_hard : Nombre de pixels différents (passe forte)
+   - statut           : "modifie" ou "pas-modifie"
+
+
+================================================================================
+5. SCRIPTS DE DÉBOGAGE
+================================================================================
+
+Les scripts dans src/ peuvent être exécutés individuellement pour le débogage.
+
+5.1) Test de détection des coins
+-------------------------------------
+   cd src-cg
+   python src/detect_corners.py
+
+   Description :
+   - Teste la détection des 4 coins sur un bulletin de référence
+   - Affiche les coordonnées détectées
+   - Affiche l'orientation du bulletin
+
+   Utilité :
+   - Vérifier que les templates de coins fonctionnent bien
+   - Ajuster "match_threshold" si nécessaire
+
+
+5.2) Test de lecture du numéro de liste
+----------------------------------------
+   cd src-cg
+   python src/identify_list_number.py --image ./ref/bulletins/Bulletin_PLR_003.png
+   python src/identify_list_number.py --image ./ref/bulletins/Bulletin_PLR_003.png --debug
+   python src/identify_list_number.py --image ./ref/bulletins/Bulletin_SNL_000.png --no-snl
+
+   Options :
+   --image PATH   : Chemin de l'image à tester
+   --debug        : Affiche les étapes intermédiaires (fenêtres OpenCV)
+   --no-snl       : Désactive la détection automatique du bulletin SNL
+
+   Description :
+   - Lit le numéro de liste dans la zone d'identification
+   - Détecte si c'est un bulletin SNL (sans numéro de liste)
+   - Affiche le numéro détecté et le fichier de référence correspondant
+
+   Utilité :
+   - Vérifier que la zone d'identification est bien positionnée
+   - Ajuster les templates de chiffres dans ref/digits/
+   - Comprendre pourquoi un numéro n'est pas reconnu
+
+
+5.3) Test de traitement complet sur une image
+----------------------------------------------
+   cd src-cg
+   python src/align_and_compare.py
+
+   Description :
+   - Teste le processus complet sur une seule image
+   - Détection des coins, alignement, comparaison
+   - Affiche les résultats de comparaison
+
+   Utilité :
+   - Déboguer le processus complet sans traiter tous les bulletins
+   - Modifier le chemin de l'image de test dans le script si nécessaire
+
+
+5.4) Outil de définition des zones
+-----------------------------------
+   cd src-cg
+   python src/define_zones.py
+   python src/define_zones.py --image ../ref/bulletins/Bulletin_LED_001.png
+
+   Options :
+   --image PATH   : Chemin de l'image à utiliser
+
+   Commandes dans l'interface :
+   E              : Ajouter une zone d'exclusion
+   I              : Définir la zone d'identification
+   S              : Sauvegarder dans config.json
+   +/-            : Zoom/dézoom
+   Q ou ESC       : Quitter
+
+   Description :
+   - Interface graphique pour définir les zones sur un bulletin
+   - Dessiner un rectangle avec la souris
+   - Presser E ou I pour enregistrer la zone
+
+   Utilité :
+   - Définir la zone où se trouve le numéro de liste
+   - Définir les zones à exclure (codes imprimés, numéros, etc.)
+   - Ajuster visuellement les zones sans modifier le JSON manuellement
+
+
+================================================================================
+6. PARAMÉTRAGE DU LOGGING
+================================================================================
+
+6.1) Niveaux de log disponibles
+   DEBUG    : Tous les détails (pour développement)
+   INFO     : Informations importantes (production normale)
+   WARNING  : Avertissements (problèmes non bloquants)
+   ERROR    : Erreurs (problèmes bloquants)
+   CRITICAL : Erreurs critiques
+
+6.2) Configuration dans config.json
+   {
+     "log_level": "INFO"
+   }
+
+6.3) Exemples de messages par niveau
+
+   DEBUG :
+   - "detect_corners sur Bulletin_001.png (1654x2339)"
+   - "Bulletin_001 essai1(no_snl=True) → num=03, ref=Bulletin_PLR_003.png"
+   - "soft=45892px (>500000?) | hard_center=234px (>12000?) | is_snl=False"
+
+   INFO :
+   - "Démarrage du traitement - export vers export/20241110_143052"
+   - "Bulletin_001.png → modifie (soft=501234, hard=456) ref=Bulletin_PLR_003.png"
+   - "Bulletin_002.png → pas-modifie (soft=12456, hard=89) ref=Bulletin_LED_001.png"
+   - "Traitement terminé"
+
+   WARNING :
+   - "Bulletin_023.png : aucun numero lisible → fallback SNL"
+   - "report.csv verrouillé, écriture dans report_backup.csv"
+   - "Zone vide pour top_left dans Bulletin_045.png"
+   - "Corrélation faible pour bottom_right : 0.32"
+
+   ERROR :
+   - "Impossible de lire /path/to/image.png"
+   - "Bulletin_099.png : pas de bulletin de référence disponible"
+   - "Impossible de lire le bulletin de reference Bulletin_XXX.png"
+
+6.4) Conseils d'utilisation
+
+   Production normale :
+   → "log_level": "INFO"
+   - Affiche les bulletins traités et leur statut
+   - Affiche les avertissements importants
+   - Pas de détails techniques
+
+   Débogage léger :
+   → "log_level": "DEBUG"
+   - Affiche tous les détails du traitement
+   - Utile pour comprendre les décisions du système
+   - Peut générer beaucoup de lignes
+
+   Monitoring silencieux :
+   → "log_level": "WARNING"
+   - N'affiche que les problèmes potentiels
+   - Utile pour surveiller un traitement automatique
+
+   Erreurs uniquement :
+   → "log_level": "ERROR"
+   - N'affiche que les erreurs bloquantes
+   - Utile pour vérifier rapidement si tout s'est bien passé
+
+
+================================================================================
+7. RÉSOLUTION DE PROBLÈMES COURANTS
+================================================================================
+
+7.1) "ModuleNotFoundError: No module named 'cv2'"
+   Solution :
+   - Activer l'environnement : conda activate bulletins
+   - Réinstaller OpenCV : pip install opencv-python
+
+7.2) Les coins ne sont pas bien détectés
+   Symptôme : "Corrélation faible pour top_left : 0.32"
+   Solutions :
+   a) Vérifier que les templates de coins existent dans ref/corners/
+   b) Baisser le seuil : "match_threshold": 0.3 dans config.json
+   c) Recréer les templates de coins à partir d'un bon bulletin
+   d) Utiliser src/detect_corners.py pour tester
+
+7.3) Le numéro de liste n'est pas reconnu
+   Symptôme : "aucun numero lisible → fallback SNL"
+   Solutions :
+   a) Vérifier la zone d'identification avec src/define_zones.py
+   b) Utiliser src/identify_list_number.py --debug pour voir les étapes
+   c) Améliorer les templates de chiffres dans ref/digits/
+   d) Ajuster la zone d'identification dans config.json
+
+7.4) Trop de faux positifs (bulletins vierges détectés comme modifiés)
+   Solutions :
+   a) Augmenter les seuils dans config.json :
+      "max_soft_pixels": 600000 (au lieu de 500000)
+      "max_hard_pixels": 15000 (au lieu de 12000)
+   b) Ajouter des zones d'exclusion pour les codes imprimés
+   c) Vérifier que les bulletins de référence sont vraiment vierges
+   d) Utiliser "log_level": "DEBUG" pour voir les valeurs exactes
+
+7.5) Trop de faux négatifs (bulletins modifiés non détectés)
+   Solutions :
+   a) Baisser les seuils dans config.json :
+      "max_soft_pixels": 400000 (au lieu de 500000)
+      "max_hard_pixels": 10000 (au lieu de 12000)
+   b) Réduire les zones d'exclusion
+   c) Vérifier l'alignement avec les images dans export/*/align/
+
+7.6) "report.csv verrouillé"
+   Cause : Le fichier est ouvert dans Excel ou un autre programme
+   Solution :
+   - Fermer le fichier CSV
+   - Ou utiliser report_backup.csv qui sera créé automatiquement
+
+7.7) Les bulletins SNL sont mal détectés
+   Solutions :
+   a) Utiliser --no-snl pour forcer la lecture du numéro
+   b) Ajuster la détection SNL dans identify_list_number.py
+   c) Vérifier que la zone d'identification ne contient que la ligne noire
+
+7.8) Performances lentes
+   Solutions :
+   a) Traiter par lots plus petits
+   b) Réduire la résolution des images d'entrée
+   c) Désactiver save_aligned si non nécessaire
+   d) Utiliser un SSD plutôt qu'un disque dur
+
+
+
+Bon traitement de bulletins !
+
+================================================================================
