@@ -40,6 +40,8 @@ Prérequis :
 Note : Pour désactiver l'environnement plus tard :
    conda deactivate
 
+   conda env list
+
 
 ================================================================================
 2. STRUCTURE DU PROJET
@@ -124,6 +126,16 @@ Paramètres principaux :
      ...
      "SNL": "Bulletin_SNL_000.png"
    }
+   
+3.8) Conversion d'images de bulletins en bulletins de référence
+# Convertir un répertoire de références
+python convert_bw.py --mode ref --source ./ref_couleur --output ./ref_nb
+
+# Avec mode verbose pour voir les détails
+python convert_bw.py --mode ref -s ./ref_couleur -o ./ref_nb -v
+
+# Avec paramètres personnalisés
+python convert_bw.py --mode ref -s ./source -o ./output --threshold 130
 
 
 ================================================================================
@@ -181,9 +193,9 @@ Les scripts dans src/ peuvent être exécutés individuellement pour le débogag
 5.2) Test de lecture du numéro de liste
 ----------------------------------------
    cd src-cg
-   python src/identify_list_number.py --image ../ref/bulletins/Bulletin_PLR_003.png
-   python src/identify_list_number.py --image ../ref/bulletins/Bulletin_PLR_003.png --debug
-   python src/identify_list_number.py --image ../ref/bulletins/Bulletin_SNL_000.png --no-snl
+   python src/identify_list_number.py --image ./ref/bulletins/Bulletin_PLR_003.png
+   python src/identify_list_number.py --image ./ref/bulletins/Bulletin_PLR_003.png --debug
+   python src/identify_list_number.py --image ./ref/bulletins/Bulletin_SNL_000.png --no-snl
 
    Options :
    --image PATH   : Chemin de l'image à tester

@@ -6,72 +6,87 @@
     "export_dir": "./export"
   },
   "log_level": "INFO",
+  
+  "_comment_resolution": "Configuration pour images ~2480x3500 pixels (haute résolution)",
+  
   "corners": {
-    "template_size": 40,
+    "template_size": 60,
     "match_threshold": 0.4
   },
+  
   "corner_boxes": {
     "top_left": {
-      "x": 50,
-      "y": 50,
-      "w": 150,
-      "h": 150
+      "x": 30,
+      "y": 30,
+      "w": 200,
+      "h": 200
     },
     "top_right": {
-      "x": 1500,
-      "y": 50,
-      "w": 150,
-      "h": 150
+      "x": 2280,
+      "y": 30,
+      "w": 200,
+      "h": 200
     },
     "bottom_left": {
-      "x": 50,
-      "y": 2125,
-      "w": 150,
-      "h": 150
+      "x": 30,
+      "y": 3290,
+      "w": 200,
+      "h": 200
     },
     "bottom_right": {
-      "x": 1500,
-      "y": 2125,
-      "w": 150,
-      "h": 150
+      "x": 2280,
+      "y": 3290,
+      "w": 200,
+      "h": 200
     }
   },
+  
   "zones": {
     "identification": {
-      "x": 1475,
-      "y": 620,
-      "w": 130,
-      "h": 100
+      "x": 2200,
+      "y": 920,
+      "w": 220,
+      "h": 130,
+      "_comment": "Zone du numéro de liste (ex: 01, 02, SNL)"
     },
     "zone_scrutin": {
-      "x": 200,
-      "y": 200,
-      "w": 250,
-      "h": 80
+      "x": 300,
+      "y": 300,
+      "w": 375,
+      "h": 120,
+      "_comment": "Zone du titre VERNIER (pour détection orientation)"
     },
     "exclusion": [
       {
-        "x": 40,
-        "y": 1995,
-        "w": 700,
-        "h": 70,
-        "comment": "Numéro bulletin"
+        "x": 60,
+        "y": 2980,
+        "w": 1050,
+        "h": 110,
+        "_comment": "Zone du numéro de bulletin imprimé (à exclure de la comparaison)"
       }
     ]
   },
+  
   "diff": {
+    "_comment_structural": "Paramètres pour la méthode de comparaison structurelle",
+    "min_contour_area": 100,
+    "min_contour_dim": 10,
+    "max_added_surface": 2000,
+    "_comment_classic": "Paramètres pour la méthode classique (fallback)",
     "threshold_soft": 40,
     "max_soft_pixels": 500000,
     "threshold_hard": 80,
     "max_hard_pixels": 12000,
     "min_hard_blob_area": 200,
-    "hard_exclude_top": 220,
-    "hard_exclude_bottom": 220
+    "hard_exclude_top": 330,
+    "hard_exclude_bottom": 330
   },
+  
   "processing": {
     "rotation_correction": true,
     "save_aligned": true
   },
+  
   "lists": {
     "01": "Bulletin_LED_001.png",
     "02": "Bulletin_VERTS_002.png",
@@ -81,5 +96,13 @@
     "06": "Bulletin_UDC_006.png",
     "07": "Bulletin_MCG_007.png",
     "SNL": "Bulletin_SNL_000.png"
+  },
+  
+  "bw_conversion": {
+    "threshold": 127,
+    "clahe_clip": 1.5,
+    "clahe_tile": 8,
+    "saturation_threshold": 15,
+    "_comment": "Paramètres pour la conversion automatique des images couleur en N&B"
   }
 }
